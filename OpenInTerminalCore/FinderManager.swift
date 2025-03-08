@@ -130,52 +130,13 @@ public class FinderManager {
         return desktopPath
     }
     
-//    /// Determine if the app exists in the `/Applications` folder
-//    private func applicationExists(_ application: String) -> Bool {
-//        var isInApplication = false
-//        let applicationDir = "/Applications/"
-//        let applicationPath = applicationDir + application + ".app"
-//        if FileManager.default.fileExists(atPath: applicationPath) {
-//            isInApplication = true
-//        }
-//        
-//        var isInHomeApplication = false
-//        var homeApplicationDirURL: URL
-//        if #available(OSX 10.12, *) {
-//            homeApplicationDirURL = FileManager.default.homeDirectoryForCurrentUser
-//        } else {
-//            // Fallback on earlier versions
-//            homeApplicationDirURL = URL(fileURLWithPath: NSHomeDirectory())
-//        }
-//        homeApplicationDirURL.appendPathComponent("Applications")
-//        let homeApplicationPath = homeApplicationDirURL.path + "/" + application + ".app"
-//        if FileManager.default.fileExists(atPath: homeApplicationPath) {
-//            isInHomeApplication = true
-//        }
-//        return isInApplication || isInHomeApplication
-//    }
-//    
-//    /// Determine if the user has installed the terminal
-//    public func terminalIsInstalled(_ terminalType: TerminalType) -> Bool {
-//        switch terminalType {
-//        case .terminal:
-//            return true
-//        case .iTerm, .hyper, .alacritty:
-//            return self.applicationExists(terminalType.rawValue)
-//        }
-//    }
-//    
-//    /// Determine if the user has installed the editor
-//    public func editorIsInstalled(_ editorType: EditorType) -> Bool {
-//        return self.applicationExists(editorType.fullName)
-//    }
-    
     /// Get all installed applications' names
     public func getAllInstalledApps() -> Set<String> {
         var applications: Set<String> = Set()
         // add system application
         applications.insert("Terminal")
         applications.insert("TextEdit")
+        applications.insert("neovim")
         // search
         do {
             var searchDirs: Set<URL> = Set()
@@ -211,7 +172,7 @@ public class FinderManager {
                     break
                 }
                 
-                var tmpDirs = searchDirs
+                var tmpSearchDirs = searchDirs
                 for currentDir in searchDirs {
                     let fileURLs = try fileManager.contentsOfDirectory(at: currentDir, includingPropertiesForKeys: nil)
                     for fileURL in fileURLs {
@@ -222,7 +183,22 @@ public class FinderManager {
                         }
                         // add to applications
                         if baseName.hasSuffix(".app") {
-                            let appName = fileURL.deletingPathExtension().lastPathComponent
+                            var appName = fileURL.deletingPathExtension().lastPathComponent
+                            
+                            // nixpkgs fixes
+                            do {
+                                // iTerm is installed as iTerm2.app
+                                if appName == "iTerm2" {
+                                    appName = "iTerm"
+                                }
+                                // IntelliJ IDEA and PyCharm community edition have CE appended
+                                else if appName == "IntelliJ IDEA CE" {
+                                    appName = "IntelliJ IDEA"
+                                } else if appName == "PyCharm CE" {
+                                    appName = "PyCharm"
+                                }
+                            }
+                            
                             applications.insert(appName)
                             continue
                         }
@@ -238,9 +214,14 @@ public class FinderManager {
                                     try (fileURL as NSURL).getResourceValue(&isAlias, forKey: URLResourceKey.isAliasFileKey)
                                 } catch _ {}
                                 if let isAlias = isAlias as? Bool {
+                                    // for nix-darwin users, applications installed through nix will be installed into a symlinked (alias) directory called "Nix Apps"
+                                    if fileURL.lastPathComponent == "Nix Apps" {
+                                        // symlink needs to be resolved first
+                                        tmpSearchDirs.insert(URL(string: try fileManager.destinationOfSymbolicLink(atPath: fileURL.absoluteString.removingPercentEncoding!.replacingOccurrences(of: "file://", with: "")))!)
+                                    }
                                     // skip alias directory
-                                    if !isAlias {
-                                        tmpDirs.insert(fileURL)
+                                    else if !isAlias {
+                                        tmpSearchDirs.insert(fileURL)
                                     }
                                 }
                             } else {
@@ -250,9 +231,9 @@ public class FinderManager {
                             // file does not exist
                         }
                     }
-                    tmpDirs.remove(currentDir)
+                    tmpSearchDirs.remove(currentDir)
                 }
-                searchDirs = tmpDirs
+                searchDirs = tmpSearchDirs
             }
             
         } catch {

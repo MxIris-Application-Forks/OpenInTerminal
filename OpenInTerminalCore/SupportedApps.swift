@@ -19,6 +19,9 @@ public enum SupportedApps: String, CaseIterable {
     case wezterm = "WezTerm"
     case tabby = "Tabby"
     case warp = "Warp"
+    case githubDesktop = "GitHub Desktop"
+    case fork = "Fork"
+    case ghostty = "Ghostty"
     
     // MARK: - Editors
     case textEdit = "TextEdit"
@@ -35,6 +38,8 @@ public enum SupportedApps: String, CaseIterable {
     case typora = "Typora"
     case nova = "Nova"
     case cursor = "Cursor"
+    case neovim = "neovim"
+    case zed = "Zed"
     // JetBrains
     case appCode = "AppCode"
     case cLion = "CLion"
@@ -65,7 +70,7 @@ public enum SupportedApps: String, CaseIterable {
     
     public var type: AppType {
         switch self {
-        case .terminal, .iTerm, .hyper, .alacritty, .kitty, .wezterm, .tabby, .warp:
+        case .terminal, .iTerm, .hyper, .alacritty, .kitty, .wezterm, .tabby, .warp, .githubDesktop, .fork, .ghostty:
             return .terminal
         default:
             return .editor
@@ -108,6 +113,9 @@ public enum SupportedApps: String, CaseIterable {
         case .wezterm: return "com.github.wez.wezterm"
         case .tabby: return "org.tabby"
         case .warp: return "dev.warp"
+        case .githubDesktop: return ""
+        case .fork: return ""
+        case .ghostty: return "com.mitchellh.ghostty"
         // Editors
         case .textEdit: return "com.apple.TextEdit"
         case .xcode: return "com.apple.Xcode"
@@ -133,6 +141,8 @@ public enum SupportedApps: String, CaseIterable {
         case .rubyMine: return "com.jetbrains.rubymine"
         case .webStorm: return "com.jetbrains.webstorm"
         case .androidstudio: return ""
+        case .neovim: return ""
+        case .zed: return ""
         }
     }
     
